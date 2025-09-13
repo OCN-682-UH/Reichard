@@ -61,7 +61,7 @@ ggplot(data = penguins,
 
 #flip axes
 
-ggplot(data = penguins,
+plot1 <- ggplot(data = penguins,
        mapping = aes(x=bill_depth_mm,
                      y=bill_length_mm,
                      group = species,
