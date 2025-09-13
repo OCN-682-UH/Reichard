@@ -26,3 +26,28 @@ ggplot(data=penguins,
        color= "Species",
        caption = "Source: Palmer Station LTER / palmerpenguins package")+ #add caption info
   scale_color_viridis_d() #makes it easier for colorblind people "d" is for discrete
+
+#Faceting making smaller plots
+ggplot(penguins,
+       aes(x=bill_depth_mm,
+           y=bill_length_mm))+
+  geom_point()+
+  facet_grid(species~sex) #makes a grid of smaller graphs
+
+#make it two columns
+ggplot(penguins,
+       aes(x=bill_depth_mm,
+           y=bill_length_mm))+
+  geom_point()+
+  facet_wrap(~species, ncol=2) #1d ribbon wrapped around two columns.
+
+#another example
+ggplot(data=penguins, 
+       mapping = aes(x = bill_depth_mm,
+                     y = bill_length_mm,
+                     color = species,
+       )) +
+  geom_point()+
+  scale_color_viridis_d()+
+  facet_grid(species~sex)+
+  guides(color = FALSE) #removes all the guides for color
