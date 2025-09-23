@@ -66,8 +66,8 @@ chem_data_clean <- chem_data %>%
   print(final_plot)  
   
   #save the plot      
-  ggsave(here("week_04","outputs","week_04_hw_tidyr_SGD_vs_Sal.png"),
-         plot = final_plot,
+  ggsave(here("week_04","outputs","week_04_hw_tidyr_SGD_vs_Sal.jpeg"),
+         plot = final_plot, #have to tell it which plot to use
          width = 10, height = 6,
          dpi = 300)
   
