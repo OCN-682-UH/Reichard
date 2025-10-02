@@ -1,0 +1,39 @@
+---
+title: "My first doc"
+author: "Jake Reichard"
+date: today
+format: 
+  html: 
+    toc: true
+    theme: superman
+    
+---
+
+## Introduction
+This is my first *Quarto* document and I am going to plot some penguin data.
+
+```{r}
+#| message: False
+
+#load libraries
+
+
+library(tidyverse)
+library(here)
+library(palmerpenguins)
+```
+
+## Look at the data
+```{r}
+glimpse(penguins)
+```
+
+## Make a plot
+This is looking at the relationship between **bill length** and **bill depth**
+```{r}
+#| warning: false
+penguins %>% 
+  ggplot(aes(x= bill_length_mm, y= bill_depth_mm, color= species))+
+  geom_point()
+```
+
