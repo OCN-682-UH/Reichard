@@ -1,0 +1,93 @@
+---
+title: "Week 7 HW"
+author: "Jake Reichard"
+format: html
+date: today
+toc: true
+toc-depth: 4
+fig-path: "../outputs/"
+---
+
+## **Introduction**
+
+Data is from tidytuesday and is meteorite impact data from NASA.
+
+#### Load Libraries
+
+```{r}
+#| warning: false
+#| message: false
+
+library(ggmap)
+library(tidyverse)
+library(here)
+library(ggspatial)
+```
+
+#### Load in data
+
+```{r}
+#| warning: false
+#| message: false
+
+
+meteorites <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2019/2019-06-11/meteorites.csv", show_col_types = FALSE)
+
+```
+
+## **Data analysis**
+
+#### Filtering out data from 1800 to 1900
+
+```{r}
+
+#filters out everything that is not a complete row
+meteorites_clean <- meteorites %>% 
+      filter(complete.cases(.))  
+
+#filter observations from 1800 to 1900
+meteorites_year <- meteorites_clean %>% 
+  filter(year >= 1800 & year <= 1900)
+
+```
+
+#### Making the map
+
+```{r}
+#| warning: false
+#| fig-align: "center"
+#| label: fig-map
+#| fig-cap: "This is a figure shows Meterorites that that were found from 1800 - 1900 in the USA. Meterorites were broken into two groups ones that *fell* in a location or where *found* in a location."
+
+#selecting the base map to be of the USA and picking the map type
+usa <-  c(left = -125, bottom = 25, right = -66, top = 50)
+usa_map <- get_stadiamap(usa, zoom = 4, maptype = "stamen_terrain")
+
+#ploting the data onto the usa map
+map_plot <- ggmap(usa_map)+
+  geom_point(data = meteorites_year, aes(x = long, 
+                                         y = lat, 
+                                         color= fall), size = 3)+
+  scale_color_viridis_d() + #color blind friendly
+  annotation_scale( bar_cols = c("blue", "white"),
+                    location = "bl") + #makes a scale bar in the bottom left
+  annotation_north_arrow(location = "br") + #makes north star in top right
+  coord_sf(crs = 4326) + #makes the scale bar to work coordate system WGS 1984
+
+  #change labels                         
+labs(title = "Meteorites Found in USA during 1800-1900",
+     subtitle = "Data source: NASA",
+     x = "Longitue",
+     y = "Latitude",
+     color = "How Meteorites were found")
+
+map_plot
+
+ggsave(here("week_07","outputs","usa_map.png"),
+       plot = map_plot,
+       width = 10,
+       height = 6,
+       dpi = 300)
+```
+
+Looking at @fig-map we can see that the Appalachian Region has the most meteorite observations from 1800 to 1900.

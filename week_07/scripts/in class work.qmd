@@ -1,0 +1,81 @@
+---
+title: "maps"
+format: html
+---
+
+
+```{r}
+
+# Load libraries
+library(tidyverse)
+library(here)
+library(maps)
+library(mapdata)
+library(mapproj)
+```
+
+```{r}
+# Read in data on population in California by county
+popdata<-read_csv(here("week_07","data","CApopdata.csv"))
+#read in data on number of seastars at different field sites
+stars<-read_csv(here("week_07","data","stars.csv"))
+```
+
+```{r}
+#get data for the entire world
+world <- map_data("world")
+
+#get data for USA
+usa <- map_data("usa")
+
+#get data for italy
+italy <- map_data("italy")
+
+#can get data for US states
+states <- map_data("state")
+
+county <- map_data("county")
+```
+
+```{r}
+#make a map of the world
+ggplot()+
+  geom_polygon(data = world, aes(x = long, y = lat, group = group, fill = region), color = "black") +
+  guides(fill = "none") +
+  theme(panel.background = element_rect(fill = "lightblue"))+
+  coord_map(projection = "mercator",
+            xlim = c(-180,180))
+
+```
+
+```{r}
+#make a map of Cali
+Ca_data <- states %>% 
+  filter(region == "california")
+
+  ggplot(Ca_data)+
+  geom_polygon(aes(x = long, y = lat, group = group, fill = region), color = "black")+
+  coord_map()+
+    guides(fill = "none") 
+  
+```
+
+```{r}
+#make a map with county population
+CApop_county <- popdata %>% 
+  select("subregion" = County, Population) %>% 
+  inner_join(county) %>% 
+  filter( region == "california")
+
+ggplot(CApop_county)+
+  geom_polygon(aes(x = long, y = lat, group= group, fill = Population), color = "black")+
+#add data points to the map
+geom_point(data = stars, aes(x =long, y = lat, size = star_no))+
+  coord_map()+
+  theme_void()+
+  scale_fill_gradient( trans = "log10")+
+labs(size = "# stars/m2")
+
+ggsave(here("week_07","outputs","Ca_pop_stars_map.jpg"))
+```
+

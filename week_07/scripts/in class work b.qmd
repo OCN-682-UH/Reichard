@@ -1,0 +1,51 @@
+---
+title: "week07_b"
+format: html
+---
+
+```{r}
+#load libraries
+library(ggmap)
+library(tidyverse)
+library(here)
+library(ggspatial)
+
+```
+
+```{r}
+#load data
+chemdata <- read.csv(here("week_07","data","chemicaldata_maunalua.csv"))
+head(chemdata)
+```
+
+```{r}
+#this is just pulling the data from google maps
+oahu <- get_map("Oahu")
+
+#this plots the maps
+ggmap(oahu)
+
+#make a data frame of lon and lat coord
+WP <- data.frame(lon = -157.7621, lat = 21.27427)
+
+#get base layer
+map1 <- get_map(WP, zoom = 17, maptype = "satellite") #zoom goes from 3 to 20 3= pacific ocean level, 20= building level zoom
+
+#plot it having wailupe being the center point
+ggmap(map1) +
+  geom_point(data = chemdata, aes(x = Long, y = Lat, color = Salinity), size = 4) +
+  scale_color_viridis_c() +
+  annotation_scale( bar_cols = c("blue", "white"),
+                    location = "bl") + #makes a scale bar in the bottom left
+  annotation_north_arrow(location = "tr") + #makes north star in top right
+  coord_sf(crs = 4326) #makes the scale bar to work it needs to be in this coordate system
+                        # this is for WGS 1984
+
+
+```
+
+```{r}
+#geocode helps you find the lat long
+geocode("the white house")
+```
+
