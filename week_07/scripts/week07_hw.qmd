@@ -31,7 +31,10 @@ library(ggspatial)
 #| message: false
 
 
-meteorites <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2019/2019-06-11/meteorites.csv", show_col_types = FALSE)
+meteorites <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2019/2019-06-11/meteorites.csv", show_col_types = FALSE) %>% 
+
+
+
 
 ```
 
