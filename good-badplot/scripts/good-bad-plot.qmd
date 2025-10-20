@@ -1,0 +1,110 @@
+---
+title: "Good/ Bad Plot"
+author: "Jake Reichard"
+format: html
+date: today
+toc: true
+toc-depth: 4
+fig-path: "../outputs/"
+---
+
+## Introduction 
+
+The data comes from tidytuesday and is looking at Pokemon. This data set contains all the information for each pokemon.
+
+#### Load Libraries
+```{r}
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(ggrepel)
+library(magick)
+library(here)
+
+```
+
+#### Load Data
+```{r}
+#| warning: false
+#| message: false
+
+poke_dat <- read.csv(here("good-badplot", "data", "pokemon.csv"))
+
+```
+
+## Plots
+
+#### Bad Plot
+```{r}
+#| warning: false
+#| message: false
+#| fig-align: "center"
+#| label: fig-bad
+#| fig-cap: "This figure shows the speed of pokemon vs the special attach score. They were grouped by the pokemon's first type classification." 
+
+poke_dat %>% 
+  ggplot(aes(x = defense, y = attack, color = type_1, label = pokemon)) +
+  geom_point() +
+  geom_text() 
+
+#save plot
+ggsave(here("good-badplot","outputs","bad-plot.png"))
+```
+
+Looking at @fig-bad it is hard to determine what kind of trend can be see for the different pokemon types.
+
+#### Good Plot
+
+```{r}
+#| warning: false
+#| message: false
+#| fig-align: "center"
+#| label: fig-good
+#| fig-cap: "This figure shows the mean defense of Pokémon vs the mean attach score. They were grouped by the Pokémon's first type classification."
+
+#Clean data
+poke_clean <- poke_dat %>% 
+  drop_na() %>%  #drop all pokemon that have NAs
+  group_by(type_1) %>%  #group by type and then generation
+  summarise(defense_mean = mean(defense, na.rm = TRUE), #find the mean for speed
+            attack_mean = mean(attack, na.rm = TRUE)) %>% #find the mean for special attack
+  group_by(.) #remove grouping
+
+#plot data
+good_plot <- poke_clean %>% 
+  ggplot(aes(x = defense_mean, y = attack_mean, color = type_1, label = type_1)) +
+  geom_point(size = 4) +
+  geom_label_repel() + #make sure labels don't overlap
+  scale_color_viridis_d() + #color blind friendly
+  theme_bw()+ #simple theme
+  theme(legend.position = "none", #remove legend
+        plot.margin = margin(t = 40, r = 20, b = 20, l = 30),#make the top margin bigger for logo
+        plot.title = element_text(size = 16, face = "bold"), #make text bigger
+        axis.title = element_text(size = 14, face = "bold"), #make text bigger
+        axis.text = element_text(size = 12)) +  #make text bigger
+  labs( title = "Pokémon's Mean Defense vs Mean Attack", #cleaner labels
+        x = "Mean Defense",
+        y = "Mean Attack",
+        color = "Pokémon Type")
+
+#save plot
+ggsave(here("good-badplot","outputs","good_plot.png"), good_plot,
+       width = 10, height = 8)
+
+#read in the plot and logo
+plot_img <- image_read(here("good-badplot", "outputs", "good_plot.png"))
+logo <- image_read(here("good-badplot", "data", "International_Pokémon_logo.png"))
+
+# Resize logo as needed
+logo_resized <- image_scale(logo, "600x600")
+
+# Composite the logo onto the plot
+final_plot <- image_composite(plot_img, logo_resized, offset = "+2300 ")
+
+final_plot
+
+image_write(final_plot, here("good-badplot", "outputs", "final_good_plot.jpg"))
+```
+
+When you look at @fig-good we see that electric and psychic Pokémon are not the strongest in terms of attack or defense. While ground Pokémon have high attack and defense. 
