@@ -43,9 +43,10 @@ poke_dat <- read.csv(here("good-badplot", "data", "pokemon.csv"))
 #| label: fig-bad
 #| fig-cap: "This figure shows the speed of pokemon vs the special attach score. They were grouped by the pokemon's first type classification." 
 
+
 poke_dat %>% 
   ggplot(aes(x = defense, y = attack, color = type_1, label = pokemon)) +
-  geom_point() +
+  geom_point() + 
   geom_text() 
 
 #save plot
