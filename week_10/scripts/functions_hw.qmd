@@ -1,0 +1,183 @@
+---
+title: "Functions Homework"
+author: "Jake Reicahrd"
+format: html
+date: today
+toc: true
+toc-depth: 4
+fig-path: "../outputs/"
+---
+
+
+## Introduction
+
+Data is collected by the Division of Aquatic Resources along the south shore of Oahu.
+
+**Transects Per Site**
+
+* Waikiki MLCD = 10
+* Diamond Head FMA = 14
+* Maunalua Bay FMA = 258
+* Hanauma Bay MLCD = 31
+
+Photos were annotated using the software CoralNet.
+
+#### Load Libraries
+
+```{r}
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(here)
+library(janitor)
+library(lubridate)
+
+```
+
+#### load data
+
+```{r}
+#| warning: false
+#| message: false
+
+dhfm <- read_csv(here("week_10", "data","DHFM_percent_covers.csv"))
+hbay <- read_csv(here("week_10", "data","HBAY_percent_covers.csv"))
+mbay <- read_csv(here("week_10", "data","MBAY_percent_covers.csv"))
+wiki <- read_csv(here("week_10", "data","WIKI_percent_covers.csv"))
+
+```
+
+## Data cleaning
+
+```{r}
+#| warning: false
+#| message: false
+
+#writing out steps before making into a function
+
+dhfm_clean <- dhfm %>%
+  clean_names() %>% #make the column names cleaner
+  separate(`image_name`, #column name we are pulling data out of
+           into = c("site", "date", "transect", "photo_number"), #new column names
+           sep = "_", #_ is the seperating factor
+           remove = FALSE) #keep orginal column
+
+#clean up photo number to remove () and .jpg
+dhfm_clean$photo_number <- as.numeric(gsub("\\D", "", dhfm_clean$photo_number))
+
+#clean up date column
+dhfm_clean$date <- mdy(dhfm_clean$date)
+
+#making a function to clean data
+
+format_coralnet <- function(data) {
+  data_clean <- data %>%
+  clean_names() %>% #make the column names cleaner
+  separate(`image_name`, #column name we are pulling data out of
+           into = c("site", "date", "transect", "photo_number"), #new column names
+           sep = "_", #_ is the seperating factor
+           remove = FALSE) #keep orginal column
+
+#clean up photo number to remove () and .jpg
+data_clean$photo_number <- as.numeric(gsub("\\D", "", data_clean$photo_number))
+
+#clean up date column
+data_clean$date <- mdy(data_clean$date)
+
+data_clean}
+
+#clean the rest of the sites
+hbay_clean <- format_coralnet(hbay)
+wiki_clean <- format_coralnet(wiki)
+mbay_clean <- format_coralnet(mbay)
+
+```
+
+#### Data anaylsis
+```{r}
+#| warning: false
+#| message: false
+
+#function for mean
+coralnet_mean <- function(data) {
+  data_transect_mean <- data %>% 
+  pivot_longer(cols = coral:turf_algae, #pivot to longer to make it easier to calculate mean
+               names_to = "benthic_fun_group", #move functional groups to this new column
+               values_to = "percent_cover") %>%  #move values
+  group_by(transect, benthic_fun_group) %>% 
+  summarise(percent_cover_mean = mean(percent_cover, na.rm = TRUE)) %>% 
+  group_by(.) 
+
+# calculate the site mean
+  
+  data_site_mean <- data_transect_mean %>%   
+  group_by(benthic_fun_group) %>% 
+  summarise(site_percent_mean = mean(percent_cover_mean, na.rm = TRUE)) %>% 
+  group_by(.)
+
+data_site_mean
+
+}
+
+#run function for all the site
+dhfm_site_mean <- coralnet_mean(dhfm_clean)
+hbay_site_mean <- coralnet_mean(hbay_clean)
+wiki_site_mean <- coralnet_mean(wiki_clean)
+mbay_site_mean <- coralnet_mean(mbay_clean)
+
+```
+
+## Ploting
+```{r}
+#| warning: false
+#| message: false
+#| fig-align: "center"
+
+#function for graphing
+coralnet_plotting <- function(data, site_name) {
+  #reorder to group functional groups together
+data_plot <- data %>% 
+  mutate(benthic_fun_group = fct_relevel(benthic_fun_group,
+                                         "turf_algae", "macroalgae", "cca_crustose_coralline_algae","coral", "sand","other_invertebrate", "other", "all_other")) %>%
+  #change the names to be cleaner for the graph
+  mutate(benthic_fun_group = recode(benthic_fun_group,
+                                    "turf_algae" = "Turf Algae",
+                                    "macroalgae"= "Macroalgae",
+                                    "cca_crustose_coralline_algae" = "Crustose Coralline Algae",
+                                    "coral" = "Coral",
+                                    "sand" = "Sand", 
+                                    "other_invertebrate" = "Other Invertebrate",
+                                    "other" = "Other",
+                                   "all_other" = "All Other")) %>% 
+  
+  #plot data
+  ggplot(aes(x = site_percent_mean, y = benthic_fun_group, fill = benthic_fun_group))+
+  geom_col(color = "black")+
+  scale_fill_viridis_d()+ #color blind friendly
+  scale_x_continuous(limits = c(0,100), breaks = seq(0,100, by= 10))+ #fix scale
+  theme_bw()+
+  theme(legend.position = "none") +
+  labs(title = paste("Benthic Community Composition -", site_name),
+       x = "Mean Percent",
+       y = "Benthic Functional Group")
+#save plot 
+ggsave(filename = here("week_10","outputs", 
+       paste0("benthic_composition_", tolower(site_name), ".png")),
+       plot = data_plot)
+
+print(data_plot)
+}
+
+
+wiki_plot <- coralnet_plotting(wiki_site_mean, "Waikiki MLCD")
+mbay_plot <- coralnet_plotting(mbay_site_mean, "Maunalua Bay FMA")
+hbay_plot <- coralnet_plotting(hbay_site_mean, "Hanauma Bay MLCD")
+dhfm_plot <- coralnet_plotting(dhfm_site_mean, "Diamond Head FMA")
+
+
+
+
+
+```
+
