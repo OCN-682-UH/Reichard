@@ -1,0 +1,12 @@
+name: coolapp
+title: coolapp
+username: jakereichard
+account: jakereichard
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 15968523
+bundleId: 11132190
+url: https://jakereichard.shinyapps.io/coolapp/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE

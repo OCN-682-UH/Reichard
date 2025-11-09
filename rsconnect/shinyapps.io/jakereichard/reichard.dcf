@@ -1,0 +1,10 @@
+name: reichard
+title:
+username: jakereichard
+account: jakereichard
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 15968493
+bundleId: 11132181
+url: https://jakereichard.shinyapps.io/reichard/
+version: 1
