@@ -1,0 +1,12 @@
+name: week_11_hw
+title: week_11_hw
+username: jakereichard
+account: jakereichard
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 16013296
+bundleId: 11154681
+url: https://jakereichard.shinyapps.io/week_11_hw/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
