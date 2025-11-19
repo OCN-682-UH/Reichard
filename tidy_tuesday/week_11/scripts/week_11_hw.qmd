@@ -1,0 +1,95 @@
+---
+title: "Week 11-Tidytuesday"
+author: "Jake Reichard"
+format: html
+date: today
+toc: true
+toc-depth: 4
+fig-path: "../outputs/"
+---
+
+## Introduction
+
+Data is from Tidytuesday looking at Lead concentration in Flint, MI water samples in 2015.
+
+## Load Libraries
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(lubridate)
+library(ggpubr)
+library(here)
+library(car)
+
+```
+
+
+## Load data
+```{r}
+#| message: false
+#| warning: false
+
+flint_mdeq <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-11-04/flint_mdeq.csv')
+flint_vt <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-11-04/flint_vt.csv')
+
+flint_mdeq %>% 
+write.csv(here("week_11","data","flint_mdeq.csv"))
+
+flint_vt %>% 
+write.csv(here("week_11","data","flint_vt.csv"))
+
+
+```
+
+
+## Data analysis
+```{r}
+#| message: false
+#| warning: false
+
+#adding a source label to the df
+flint_mdeq <-flint_mdeq %>% 
+  mutate( source = "Michigan Department of Environment") %>% 
+  select(-lead) 
+
+#adding a source to the df
+flint_vt <- flint_vt %>% 
+  mutate(source = "Virginia Tech")
+
+#combining the two sampling together
+combine_dat <- bind_rows(flint_mdeq, flint_vt) %>% #adding them together
+  mutate(lead_combined = coalesce(lead, lead2)) %>%  #add the two lead columns into one
+  mutate(lead_log = log(lead_combined)) %>%  #do a log transformation because data is spreadout
+  filter(!is.na(lead_log) & !is.infinite(lead_log)) #remove na and infinite numbers after transformation so anova can be ran.
+
+anova_result <- aov(lead_log ~ source, data = combine_dat)
+summary(anova_result)
+
+
+```
+
+```{r}
+#| warning: false
+#| fig-align: "center"
+#| label: fig-comparison
+#| fig-cap: "This figure compares two sampling method that took lead samples in Flint, MI. The lead concentrations were transformed using a log transformation because of the high spread of values. The brakets represent the comparison with the number above being their p-value."
+
+
+ggplot(combine_dat, aes(x = source, y = lead_log, fill = source)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.5, size = 2) +
+  stat_compare_means(comparisons = list(c("Michigan Department of Environment", "Virginia Tech")), 
+                     method = "t.test", method.args = list(var.equal =TRUE)) +  # Adds bracket with significance
+labs(title = "Lead Levels by Sampling Source",
+       subtitle = "Data from TidyTuesday",
+       x = "Sampling Source",
+       y = "Lead Concentration logged") +
+  theme_minimal()+
+  theme(legend.position = "none")
+
+ggsave(here("week_11","outputs","Sampling_source_comparison.jpg"))
+```
+
+The new skill I learned for this Tidytuesday was adding significance brackets to @fig-comparison. This is helpful when you are trying to compare two different things. It allows the reader to see what things are statistically significant. In this graph, the two sampling methods were similar because the p-value was 0.58.
