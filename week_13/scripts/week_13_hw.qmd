@@ -1,0 +1,82 @@
+---
+title: "for loops and map function HW"
+author: "Jake Reichard"
+format: html
+date: today
+toc: true
+toc-depth: 4
+---
+
+## Load Libaries
+```{r}
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(here)
+library(knitr)
+
+```
+
+## For loop
+```{r}
+#| warning: false
+#| message: false
+
+tp_path <- here("week_13","data","homework")
+
+#look for everything with a csv
+files <- dir(path = tp_path, pattern = "csv", full.names = FALSE)
+
+files
+
+#make a df that the data will go into
+tp_data <- tibble(file_name = rep(NA, length(files)),
+                    mean_temp = rep(NA, length(files)),
+                    sd_temp = rep(NA, length(files)),
+                    mean_inten = rep(NA, length(files)),
+                    sd_inten = rep(NA, length(files)))
+
+raw_data <- read_csv(paste0(tp_path, "/",files[1])) #test reading in the file to an object
+
+#check data
+head(raw_data)
+
+mean_temp <- mean(raw_data$Temp.C, na.rm = TRUE)
+sd_temp <- sd(raw_data$Temp.C, na.rm = TRUE)
+
+for (i in 1:length(files)) { 
+  raw_data <- read_csv(paste0(tp_path, "/",files[i])) # pasting the csv to this object
+  
+  
+  tp_data$file_name[i] <- files[i] # each file goes into one row
+  tp_data$mean_temp[i] <- mean(raw_data$Temp.C, na.rm =TRUE) 
+  tp_data$sd_temp[i] <- sd(raw_data$Temp.C, na.rm = TRUE)
+  tp_data$mean_inten[i] <- mean(raw_data$Intensity.lux, na.rm =TRUE)
+  tp_data$sd_inten[i] <- sd(raw_data$Intensity.lux, na.rm = TRUE)
+  
+}
+
+kable(tp_data, caption = "Temperature and Light Intensity Statistics in Tide Pools")
+```
+
+## Map function
+```{r}
+#| warning: false
+#| message: false
+
+#look for everything with a csv
+files2 <- dir(path = tp_path, pattern = "csv", full.names = TRUE)
+
+tp_data_map <- files2 %>% 
+  set_names() %>% #sets the id of each list to the file name
+  map_df(read_csv, .id = "filename") %>%  #map everything to a dataframe and put the put the id in a column called filename
+  group_by(filename) %>% 
+  summarise(mean_temp = mean(Temp.C, na.rm =TRUE),
+            sd_temp = sd(Temp.C, na.rm = TRUE),
+            mean_inten = mean(Intensity.lux, na.rm = TRUE),
+            sd_inten = sd(Intensity.lux, na.rm = TRUE))
+
+kable(tp_data_map, caption = "Temperature and Light Intensity Statistics in Tide Pools")
+```
+
