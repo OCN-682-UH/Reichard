@@ -1,0 +1,205 @@
+---
+title: "Tidy Tuesday Week 13"
+author: "Jake Reichard"
+format: html
+date: today
+toc: true
+toc-depth: 4
+fig-path: "../outputs/"
+---
+
+## Introduction
+
+Data is looking at the Complete Sherlock Holmes text. 
+
+## Load Libraries
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(here)
+library(tidytext)
+library(wordcloud2)
+library(stringr)
+library(ggplot2)
+
+```
+
+#Load data
+```{r}
+#| message: false
+#| warning: false
+
+holmes <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-11-18/holmes.csv')
+
+head(holmes)
+str(holmes)
+
+```
+
+
+## Data analysis
+```{r}
+
+# Identify lines where Holmes is speaking
+# look for common attribution patterns
+holmes_patterns <- c(
+  "said Holmes", "Holmes said", "cried Holmes", "Holmes cried",
+  "asked Holmes", "Holmes asked", "replied Holmes", "Holmes replied",
+  "remarked Holmes", "Holmes remarked", "observed Holmes", "Holmes observed",
+  "continued Holmes", "Holmes continued", "exclaimed Holmes", "Holmes exclaimed",
+  "murmured Holmes", "Holmes murmured", "whispered Holmes", "Holmes whispered"
+)
+
+# Create a regex pattern
+pattern <- paste(holmes_patterns, collapse = "|")
+
+# Filter for lines where Holmes is speaking AND extract dialogue
+holmes_lines <- holmes %>%
+  # Keep only lines that mention Holmes speaking
+  filter(str_detect(text, regex(pattern, ignore_case = TRUE))) %>%
+  # Extract all quoted text from these lines
+  mutate(dialogue = str_extract_all(text, '"([^"]+)"')) %>%
+  # Keep only rows that have quoted dialogue
+  filter(lengths(dialogue) > 0) %>%
+  # Expand so each quote gets its own row
+  tidyr::unnest(dialogue) %>%
+  # Remove the quote marks themselves
+  mutate(dialogue = str_remove_all(dialogue, '"'))
+
+# Tokenize and clean the dialogue
+holmes_words <- holmes_lines %>%
+  # Split dialogue into individual words
+  unnest_tokens(word, dialogue) %>%
+  # Remove stop words (common words like "the", "and", "of")
+  anti_join(stop_words, by = "word") %>%
+  # Remove numbers and single letters
+  filter(
+    !str_detect(word, "^\\d+$"),
+    nchar(word) > 1
+  ) %>%
+  # Count word frequencies
+  count(word, sort = TRUE)
+
+# Check how many words we found
+cat("Total unique words found:", nrow(holmes_words), "\n")
+cat("Total word occurrences:", sum(holmes_words$n), "\n\n")
+
+# View top 20 words
+print("Top 20 most frequent words Holmes uses:")
+print(holmes_words %>% head(20))
+
+```
+
+## Make Word Cloud
+```{r}
+#| warning: false
+#| fig-align: "center"
+#| label: fig-word
+#| fig-cap: "This is a figure that shows the top 20 words spoken by Sherlock Holmes across all the public domain books."
+
+wordcloud2(holmes_words,
+           shape = "star",
+           size = 0.8, 
+           color = rep_len(c("#8B4513", "#2F4F4F", "#556B2F", "#8B0000"), 
+                          nrow(holmes_words)),
+           backgroundColor = "white")
+```
+
+I used @fig-word to determine what the top words spoken by Holmes were. I then wanted to make a heat map for each book.
+
+## Make a Heat map
+
+#### Frequency Heat Map
+```{r}
+#| warning: false
+#| fig-align: "center"
+#| label: fig-heat_f
+#| fig-cap: "This is a figure that shows a heat map of the top 10 words spoken by Holmes across his books. Heat map is displaying the frequency of the words."
+
+# Get top N words overall
+top_n_words <- 10  # Adjust this to show more/fewer words
+
+top_words <- holmes_words %>%
+  head(top_n_words) %>%
+  pull(word)
+
+# Find the top 15 books with the most Holmes dialogue
+top_books <- holmes_lines %>%
+  count(book, sort = TRUE) %>%
+  head(15) %>%
+  pull(book)
+
+# Calculate word frequencies by book
+holmes_by_book <- holmes_lines %>%
+  # Keep only the top 15 books
+  filter(book %in% top_books) %>%
+  # Split dialogue into individual words
+  unnest_tokens(word, dialogue) %>%
+  # Keep only our top words
+  filter(word %in% top_words) %>%
+  # Count by book and word
+  count(book, word) %>%
+  # Calculate percentage within each book for better comparison
+  group_by(book) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup()
+
+# Create the heatmap
+ggplot(holmes_by_book, aes(x = book, y = word, fill = n)) +
+  geom_tile(color = "white", size = 0.5) +
+  scale_fill_gradient(low = "lightblue", high = "darkgreen", name = "Frequency") +
+  labs(
+    title = "Sherlock Holmes' Most Frequent Words Across Top 15 Books",
+    x = "Book",
+    y = "Word",
+    subtitle = "Based on dialogue attributed to Sherlock Holmes. 
+    Books shown are the top 15 books with the most holmes dialogue."
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 8),
+    axis.text.y = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    panel.grid = element_blank()
+  )
+ggsave(here("tidy_tuesday","week_13","outputs","holmes_heatmap_f.jpg"),
+       width = 10,
+       height = 12)
+```
+
+This week for Tidy Tuesday I learned how to plot a heat map. I wanted to look at how the frequency and percentage of the top words looked across all the books. For @fig-heat_f I plotted it looking at frequency those words were mentioned for each top 15 book. For @fig-heat_p I plotted it looking at the percentage those words were spoken for that book.
+
+#### Percentage Heat Map
+```{r}
+#| warning: false
+#| fig-align: "center"
+#| label: fig-heat_p
+#| fig-cap: "This is a figure that shows a heat map of the top 10 words spoken by Holmes across his books. Heat map is displaying the percentage of words in each book."
+
+# different version
+ggplot(holmes_by_book, aes(x = book, y = word, fill = pct)) +
+  geom_tile(color = "white", size = 0.5) +
+  scale_fill_gradient(low = "lightblue", high = "darkgreen", 
+                      name = "% of Holmes'\nDialogue") +
+  labs(
+    title = "Sherlock Holmes' Most Frequent Words Across Books",
+    subtitle = "Showing percentage of Holmes' total dialogue in each book. 
+    Books shown are the top 15 books with the most holmes dialogue.",
+    x = "Book",
+    y = "Word"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 8),
+    axis.text.y = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    panel.grid = element_blank()
+  )
+
+ggsave(here("tidy_tuesday","week_13","outputs","holmes_heatmap_p.jpg"),
+       width = 10,
+       height = 12)
+```
+
