@@ -1,0 +1,136 @@
+---
+title: "Tidy Tuesday Week 14"
+author: "Jake Reichard"
+format: html
+date: today
+toc: true
+toc-depth: 4
+---
+
+## Introduction
+
+Data for this tidy tuesday is from the World Bank. It has developed Statistical Performance Indicators (SPI) to monitor the statistical performance of countries.
+
+### Load Libraries
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(here)
+library(plotly)
+library(rjson)
+library(htmlwidgets)
+
+
+```
+
+
+### Load Data
+```{r}
+#| message: false
+#| warning: false
+
+spi_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-11-25/spi_indicators.csv')
+
+```
+
+### Make the map ploting a function
+```{r}
+#|warning: FALSE
+
+
+# Create a function to generate maps for different pillars
+create_pillar_map <- function(data, pillar_column, pillar_name, year = NULL) {
+  if (!is.null(year)) { # check to see if you added year
+    data <- data %>% filter(year == !!year) # use the year they user put
+  } else {
+    year <- max(data$year, na.rm = TRUE) # if user didn't put year pick the most recent
+    data <- data %>% filter(year == !!year)
+  }
+  
+  fig <- plot_geo(data) %>%
+    add_trace( #adds a layer to map
+      z = as.formula(paste0("~", pillar_column)), # color intensity of each county
+      color = as.formula(paste0("~", pillar_column)),
+      colors = 'Blues',
+      colorscale = 'Blues',
+      text = ~paste( # makes the template for the hover text box
+        "Country:", country, "<br>", # br creates a line break
+        pillar_name, ":", round(get(pillar_column), 2), "<br>",
+        "Region:", region
+      ),
+      locations = ~iso3c,
+      marker = list(line = list(color = 'rgb(255,255,255)', width = 0.5))
+    ) %>%
+    colorbar(title = "Score") %>%
+    layout(
+      title = paste(pillar_name, "-", year),
+      geo = list(
+        showframe = FALSE,
+        showcoastlines = TRUE,
+        projection = list(type = 'natural earth')
+      )
+    )
+  
+  return(fig)
+}
+
+```
+
+### Using function to make maps
+```{r}
+#| label: fig-infra
+#| warning: false
+#| fig-cap: "The SPI score for the data infrastructure score for the year 2020."
+
+
+data_infractructure <- create_pillar_map(spi_data, "data_infrastructure_score", "Data Infrastructure Score", year = 2020)
+
+data_infractructure
+# save plot
+saveWidget(data_infractructure, here("tidy_tuesday","week_14","outputs","data_infractructure_map.html"), selfcontained = TRUE)
+
+```
+
+For this Tidy Tuesday I explored the plotly library. I liked making maps with this library over ggmap. It was easier to make an interactive map than ggmap. This version allows you to zoom in and pan around the map. I also turned the map ploting into a function so I could make maps for each different type of score.
+
+### Animated Map
+```{r}
+#| fig-align: "center"
+#| fig-cap: "This map is an animation of the overall score for countries over time."
+#| label: fig-animation
+#| warning: false
+
+
+fig_animated <- spi_data %>%
+  plot_geo(frame = ~year) %>% # frame is how you create separate frames for the animation
+  add_trace(
+    z = ~overall_score, # same as the maping function above
+    color = ~overall_score,
+    colors = 'Blues',
+    text = ~paste(
+      "Country:", country, "<br>",
+      "Data Use Score:", round(data_use_score, 2), "<br>",
+      "Year:", year
+    ),
+    locations = ~iso3c,
+    marker = list(line = list(color = 'rgb(255,255,255)', width = 0.5))
+  ) %>%
+  colorbar(title = "Data Use Score") %>%
+  layout(
+    title = "Data Use Score Over Time",
+    geo = list(
+      showframe = FALSE,
+      showcoastlines = TRUE,
+      projection = list(type = 'natural earth')
+    )
+  )
+
+fig_animated
+
+# save plot
+saveWidget(fig_animated, here("tidy_tuesday","week_14","outputs","data_animation_map.html"), selfcontained = TRUE)
+```
+
+While exploring plotly I also learned how to make an animated map that shows the change over time in @fig-animation.
