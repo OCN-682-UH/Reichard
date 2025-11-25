@@ -36,7 +36,7 @@ files
 #making the df that the data will go into
 cond_data <- tibble(file_name = rep(NA, length(files)),
                     mean_temp = rep(NA, length(files)),
-                    mean_sal = rep(NA, length(files)))
+                    mean_int = rep(NA, length(files)))
 cond_data
 
 raw_data <- read_csv(paste0(CondPath, "/",files[1])) #test reading in the file
